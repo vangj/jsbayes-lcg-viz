@@ -108,7 +108,7 @@
   }
   function initNodeData(node) {
     var mean = node.mean;
-    var sigma = (true === node.observed) ? 0.001 : node.sigma;
+    var sigma = (true === node.observed) ? 0.5 : node.sigma;
     var data = [];
     var lower = mean - (3.5 * sigma);
     var upper = mean + (3.5 * sigma);
@@ -421,7 +421,7 @@
           var xmax = n.data[n.data.length-1].q;
           var xrange = xmax - xmin;
           var result = pct * xrange + xmin;
-          console.log(n.uid + ' result = ' + result);
+//          console.log(n.uid + ' result = ' + result);
           
           n.observed = true;
           var g = graph.graph;
@@ -435,9 +435,9 @@
             nIn.mean = nOut.avg;
             initNodeData(nIn);
             rescale(nIn);
-            console.log(nIn.data);
+//            console.log(nIn.data);
           }
-          console.log(graph);
+//          console.log(graph);
         });
     });
   }
