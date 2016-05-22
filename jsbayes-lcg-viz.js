@@ -327,7 +327,7 @@
         });
     });
   }
-  function drawNodesName(nodes) {
+  function drawNodesName(graph, SAMPLES, nodes) {
     nodes.each(function(d) {
       d3.select(this)
         .append('text')
@@ -343,7 +343,21 @@
         .text(function(d) {
           return formatNodeName(d.name);
         })
-        .style('text-anchor', 'middle');
+        .style('text-anchor', 'middle')
+        .on('click', function(n) { 
+          var g = graph.graph;
+          var node = g.node(n.id);
+          node.unobserve();
+          g.sample(SAMPLES);
+        
+          for(var i=0; i < g.nodes.length; i++) {
+            var nOut = g.nodes[i];
+            var nIn = graph.nodeById(nOut.id);
+            nIn.mean = nOut.avg;
+            initNodeData(nIn);
+            rescale(nIn);
+          }
+        });
     });
   }
   function enableNodesDrag(graph, nodes) {
@@ -471,7 +485,7 @@
       });
     
     drawNodesRect(nodes);
-    drawNodesName(nodes);
+    drawNodesName(graph, SAMPLES, nodes);
     drawNodesCurve(nodes);
     drawNodesXAxis(graph, SAMPLES, nodes);
     drawNodesYAxis(nodes);
