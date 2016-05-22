@@ -57,12 +57,22 @@
   <script src="jsbayes-lcg-viz.js"></script>
   <script>
     function getGraph() {
-      var graph = jsbayeslcg.newGraph([ [1], [-4.5], [8.5] ], [ [4,2,-1], [2, 5, -5], [-2, -5, 8]]);
+      var means = [ 
+        [1], 
+        [-4.5], 
+        [8.5] 
+      ];
+      var sigma = [ 
+        [4,2,-1], 
+        [2, 5, -5], 
+        [-2, -5, 8]
+      ];
+      var graph = jsbayeslcg.newGraph(means, sigma);
       var n2 = graph.defineNode('n2', 2, [1]);
       var n1 = graph.defineNode('n1', 1, [0]);
       var n0 = graph.defineNode('n0', 0);
 
-      var T = 10000;
+      var T = 15000;
       graph.sample(T);
       
       var g = jsbayeslcgviz.fromGraph(graph);
