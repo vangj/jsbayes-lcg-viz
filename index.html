@@ -281,11 +281,9 @@ function getNode(mean, sigma, x, y, id) {
   var upper = mean + (3.5 * sigma);
   var increment = (upper - lower) / 100.0;
 
-  // loop to populate data array with 
-  // probabily - quantile pairs
   for (var i = lower; i <= upper; i += increment) {
-    q = i; // calc random draw from normal dist
-    p = gaussian(q, mean, sigma) // calc prob of rand draw
+    q = i;
+    p = gaussian(q, mean, sigma);
     el = {
       "q": q,
       "p": p
@@ -293,8 +291,6 @@ function getNode(mean, sigma, x, y, id) {
     data.push(el)
   };
 
-  // need to sort for plotting
-  //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort
   data.sort(function(x, y) {
     return x.q - y.q;
   });
@@ -341,11 +337,9 @@ function getGraph() {
       var upper = mean + (3.5 * sigma);
       var increment = (upper - lower) / 100.0;
 
-      // loop to populate data array with 
-      // probabily - quantile pairs
       for (var i = lower; i <= upper; i += increment) {
-        q = i; // calc random draw from normal dist
-        p = gaussian(q, mean, sigma) // calc prob of rand draw
+        q = i;
+        p = gaussian(q, mean, sigma)
         el = {
           "q": q,
           "p": p
@@ -353,8 +347,6 @@ function getGraph() {
         data.push(el)
       };
 
-      // need to sort for plotting
-      //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort
       data.sort(function(x, y) {
         return x.q - y.q;
       });
@@ -372,8 +364,6 @@ function getGraph() {
   };
 }
 
-//taken from Jason Davies science library
-// https://github.com/jasondavies/science.js/
 function gaussian(x, mean, sigma) {
   var gaussianConstant = 1 / Math.sqrt(2 * Math.PI);
 
