@@ -106,6 +106,29 @@
     var xx = (x - mean) / sigma;
     return gaussianConstant * Math.exp(-.5 * xx * xx) / sigma;
   }
+  function initNodeData(node) {
+    var mean = node.mean;
+    var sigma = (true === node.observed) ? 0.001 : node.sigma;
+    var data = [];
+    var lower = mean - (3.5 * sigma);
+    var upper = mean + (3.5 * sigma);
+    var increment = (upper - lower) / 100.0;
+
+    for (var i = lower; i <= upper; i += increment) {
+      var q = i;
+      var p = gaussian(q, mean, sigma)
+      var el = {
+        "q": q,
+        "p": p
+      }
+      data.push(el)
+    };
+
+    data.sort(function(x, y) {
+      return x.q - y.q;
+    });
+    node.data = data;
+  }
   function newGraph() {
     return {
       nodes: [],
@@ -155,34 +178,19 @@
         return edge;
       },
       addNode: function(mean, sigma, x, y, id, name) {
-        var data = [];
-        var lower = mean - (3.5 * sigma);
-        var upper = mean + (3.5 * sigma);
-        var increment = (upper - lower) / 100.0;
-
-        for (var i = lower; i <= upper; i += increment) {
-          var q = i;
-          var p = gaussian(q, mean, sigma)
-          var el = {
-            "q": q,
-            "p": p
-          }
-          data.push(el)
-        };
-
-        data.sort(function(x, y) {
-          return x.q - y.q;
-        });
         var node = {
-          data: data,
+          data: [],
           x: x,
           y: y,
           id: id,
           name: name,
           uid: 'n' + id,
           width: gwidth,
-          height: gheight
+          height: gheight,
+          mean: mean,
+          sigma: sigma
         };
+        initNodeData(node);
         this.nodes.push(node);
         return node;
       }
@@ -262,59 +270,41 @@
     }
     return name.substr(0, MAX);
   }
-  function drawNodes(options) {
-    var graph = options.graph;
-    var nodes = d3.select(options.id)
-      .selectAll('g')
-      .data(graph.nodes)
-      .enter()
-      .append('g')
-      .attr({
-        id: function(d) {
-          return d.uid;
-        },
-        class: 'node-group'
-      });
+  function xAxisId(node) {
+    return 'xAxis-' + node.uid;
+  }
+  function yAxisId(node) {
+    return 'yAxis-' + node.uid;
+  }
+  function curveId(node) {
+    return 'curve-' + node.uid;
+  }
+  function rescale(node) {
+    var xId = '#' + xAxisId(node),
+        yId = '#' + yAxisId(node),
+        cId = '#' + curveId(node);
+    
+    var xmin = d3.min(node.data, function(d) { return d.q; });
+    var xmax = d3.max(node.data, function(d) { return d.q; });
+    var ymin = d3.min(node.data, function(d) { return d.p; });
+    var ymax = d3.max(node.data, function(d) { return d.p; });
+
+    var x = d3.scale.linear().domain([xmin, xmax]).range([0, gwidth]);
+    var y = d3.scale.linear().domain([ymin, ymax]).range([gheight, 0]);
+
+    var xAxis = d3.svg.axis().scale(x).ticks(4).orient("bottom");
+    var yAxis = d3.svg.axis().scale(y).ticks(4).orient("left");
+
+    var line = d3.svg.line()
+      .x(function(d) { return x(d.q); })
+      .y(function(d) { return y(d.p); });
+    
+    d3.select(xId).transition().duration(1000).ease('circle').call(xAxis);
+    d3.select(yId).transition().duration(1000).ease('bounce').call(yAxis);
+    d3.select(cId).datum(node.data).attr({ d: line });
+  }
+  function drawNodesRect(nodes) {
     nodes.each(function(d) {
-      var xmin = d3.min(d.data, function(d) {
-        return d.q;
-      });
-      var xmax = d3.max(d.data, function(d) {
-        return d.q;
-      });
-      var ymin = d3.min(d.data, function(d) {
-        return d.p;
-      });
-      var ymax = d3.max(d.data, function(d) {
-        return d.p;
-      });
-
-      var x = d3.scale.linear()
-        .domain([xmin, xmax])
-        .range([0, gwidth]);
-
-      var y = d3.scale.linear()
-        .domain([ymin, ymax])
-        .range([gheight, 0]);
-
-      var xAxis = d3.svg.axis()
-        .scale(x)
-        .ticks(4)
-        .orient("bottom");
-
-      var yAxis = d3.svg.axis()
-        .scale(y)
-        .ticks(4)
-        .orient("left");
-
-      var line = d3.svg.line()
-        .x(function(d) {
-          return x(d.q);
-        })
-        .y(function(d) {
-          return y(d.p);
-        });
-
       d3.select(this)
         .append('rect')
         .attr({
@@ -323,7 +313,8 @@
           width: gwidth,
           height: gheight,
           fill: '#eceff1',
-          class: 'node-rect'
+          class: 'node-rect',
+          'data-node': d.uid,
         })
         .on('mousedown', function(d) {
           d3.selectAll('g.node-group').sort(function(a, b) {
@@ -334,6 +325,10 @@
             }
           });
         });
+    });
+  }
+  function drawNodesName(nodes) {
+    nodes.each(function(d) {
       d3.select(this)
         .append('text')
         .attr({
@@ -342,39 +337,16 @@
           fill: 'black',
           class: 'node-name',
           'font-family': 'monospace',
-          'font-size': 12
+          'font-size': 12,
+          'data-node': d.uid
         })
         .text(function(d) {
           return formatNodeName(d.name);
         })
         .style('text-anchor', 'middle');
-      d3.select(this)
-        .append("path")
-        .datum(d.data)
-        .attr({
-          class: 'node-line',
-          d: line
-        });
-      d3.select(this)
-        .append("g")
-        .attr({
-          class: 'node-x-axis axis',
-          transform: 'translate(0,' + gheight + ')'
-        })
-        .call(xAxis);
-      d3.select(this)
-        .append("g")
-        .attr({
-          class: 'node-y-axis axis'
-        })
-        .call(yAxis);
-      var translate = 'translate(' + d.x + ',' + d.y + ')';
-      d3.select(this)
-        .attr({
-          transform: translate,
-          'data-id': d.id
-        });
     });
+  }
+  function enableNodesDrag(graph, nodes) {
     var drag = d3.behavior.drag()
       .origin(function(d) {
         return d;
@@ -418,6 +390,97 @@
       });
 
     nodes.call(drag);
+  }
+  function drawNodesCurve(nodes) {
+    nodes.each(function(d) {
+      d3.select(this)
+        .append('path')
+        .attr({
+          id: curveId(d),
+          'data-node': d.uid,
+          class: 'node-line'
+        });
+    });
+  }
+  function drawNodesXAxis(graph, SAMPLES, nodes) {
+    nodes.each(function(d) {
+      d3.select(this)
+        .append("g")
+        .attr({
+          id: xAxisId(d),
+          class: 'node-x-axis axis',
+          'data-node': d.uid,
+          transform: 'translate(0,' + gheight + ')'
+        })
+        .on('click', function(n) {
+          var min = n.x;
+          var max = n.x + n.width;
+          var range = max - min;
+          var pct = (d3.event.x - min) / range;
+          var xmin = n.data[0].q;
+          var xmax = n.data[n.data.length-1].q;
+          var xrange = xmax - xmin;
+          var result = pct * xrange + xmin;
+          console.log(n.uid + ' result = ' + result);
+          
+          n.observed = true;
+          var g = graph.graph;
+          var node = g.node(n.id);
+          node.observe(result);
+          g.sample(SAMPLES);
+          
+          for(var i=0; i < g.nodes.length; i++) {
+            var nOut = g.nodes[i];
+            var nIn = graph.nodeById(nOut.id);
+            nIn.mean = nOut.avg;
+            initNodeData(nIn);
+            rescale(nIn);
+            console.log(nIn.data);
+          }
+          console.log(graph);
+        });
+    });
+  }
+  function drawNodesYAxis(nodes) {
+    nodes.each(function(d) {
+      d3.select(this)
+        .append("g")
+        .attr({
+          id: yAxisId(d),
+          class: 'node-y-axis axis',
+          'data-node': d.uid
+        });
+    })
+  }
+  function drawNodes(options) {
+    var SAMPLES = options.samples || 10000;
+    var graph = options.graph;
+    var nodes = d3.select(options.id)
+      .selectAll('g')
+      .data(graph.nodes)
+      .enter()
+      .append('g')
+      .attr({
+        id: function(d) {
+          return d.uid;
+        },
+        class: 'node-group',
+        transform: function(d) {
+          return 'translate(' + d.x + ',' + d.y + ')';
+        }
+      });
+    
+    drawNodesRect(nodes);
+    drawNodesName(nodes);
+    drawNodesCurve(nodes);
+    drawNodesXAxis(graph, SAMPLES, nodes);
+    drawNodesYAxis(nodes);
+    
+    nodes.each(function(d) {
+      rescale(d);
+    });
+    
+    enableNodesDrag(graph, nodes);
   }
   function drawEdges(options) {
     var graph = options.graph;
