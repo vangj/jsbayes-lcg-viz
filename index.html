@@ -4,470 +4,60 @@
 <head>
   <meta charset="UTF-8">
   <title>JSBayes-LCG-Viz</title>
+  <style>
+    body {
+      font: 10px sans-serif;
+    }
+    .axis path,
+    .axis line {
+      fill: none;
+      stroke: #000;
+      shape-rendering: crispEdges;
+    }  
+    .node-line {
+      fill: none;
+      stroke: steelblue;
+      stroke-width: 1.5px;
+    }
+  </style>
   <script src="bower_components/d3/d3.js"></script>
   <script src="bower_components/lodash/lodash.js"></script>
   <script src="bower_components/graphlib/dist/graphlib.core.js"></script>
   <script src="bower_components/dagre/dist/dagre.core.js"></script>
   <script src="bower_components/jquery/dist/jquery.js"></script>
   <script src="bower_components/jsbayes-lcg/jsbayes-lcg.js"></script>
-  <style type="text/css">
-  body {
-    font: 10px sans-serif;
-  }
-  
-  .axis path,
-  .axis line {
-    fill: none;
-    stroke: #000;
-    shape-rendering: crispEdges;
-  }  
-  .node-line {
-    fill: none;
-    stroke: steelblue;
-    stroke-width: 1.5px;
-  }
-  </style>
+  <script src="jsbayes-lcg-viz.js"></script>
+  <script>
+    function getGraph() {
+      var graph = jsbayeslcg.newGraph([ [1], [-4.5], [8.5] ], [ [4,2,-1], [2, 5, -5], [-2, -5, 8]]);
+      var n2 = graph.defineNode('n2', 2, [1]);
+      var n1 = graph.defineNode('n1', 1, [0]);
+      var n0 = graph.defineNode('n0', 0);
+
+      var T = 10000;
+      graph.sample(T);
+      
+      var g = jsbayeslcgviz.fromGraph(graph);
+      return g;
+    }
+    
+    $(document).ready(function() {
+      (function(window) {
+        var graph = getGraph();
+        jsbayeslcgviz.draw({
+          id: '#bbn',
+          width: 1000,
+          height: 1000,
+          graph: graph,
+          samples: 10000
+        });
+      })(window);
+    })
+  </script>
 </head>
 
 <body>
+  <svg id="bbn"></svg>
 </body>
-<script type="text/javascript">
-var OUT_LEFT = 1,
-  OUT_TOP = 2,
-  OUT_RIGHT = 4,
-  OUT_BOTTOM = 8;
-
-var margin = {
-    top: 20,
-    right: 20,
-    bottom: 30,
-    left: 50
-  },
-  width = 1000 - margin.left - margin.right,
-  height = 1000 - margin.top - margin.bottom,
-  gwidth = 150,
-  gheight = gwidth/2;
-
-var graph = getGraph();
-var n1 = graph.addNode(20, 0.5, 30, 50, 0);
-var n2 = graph.addNode(10, 2.1, 330, 50, 1);
-var n3 = graph.addNode(5, 1.7, 30, 240, 2);
-graph.addEdge(n1.id, n2.id);
-graph.addEdge(n2.id, n3.id);
-
-var svg = d3.select("body").append("svg")
-  .attr({
-    width: width + margin.left + margin.right,
-    height: height + margin.top + margin.bottom,
-    id: 'mysvg'
-  })
-  .append('defs')
-  .append('marker')
-  .attr({
-    id: 'arrow',
-    markerWidth: 10,
-    markerHeight: 10,
-    refX: 5,
-    refY: 3,
-    orient: 'auto',
-    markerUnits: 'strokeWidth'
-  })
-  .append('path')
-  .attr({
-    d: 'M0,0 L0,6 L5,3 z',
-    fill: '#f00',
-    class: 'edge-head'
-  });
-
-var edges = d3.select('#mysvg')
-  .selectAll('line')
-  .data(graph.edges)
-  .enter()
-  .append('line')
-  .each(function(d) {
-    var points = graph.edge(d.parent, d.child);
-    d3.select(this).attr({
-      'data-parent': d.parent,
-      'data-child': d.child,
-      x1: points.x1,
-      y1: points.y1,
-      x2: points.x2,
-      y2: points.y2,
-      style: 'stroke:rgb(255,0,0);stroke-width:2',
-      class: 'edge-line',
-      'marker-end': 'url(#arrow)'
-    });
-  });
-
-svg.selectAll('line')
-  .data(graph.edges)
-  .enter()
-  .append('line')
-  .each(function(d) {
-    var points = graph.edge(d.parent, d.child);
-    d3.select(this).attr({
-      'data-parent': d.parent,
-      'data-child': d.child,
-      x1: points.x1,
-      y1: points.y1,
-      x2: points.x2,
-      y2: points.y2,
-      style: 'stroke:rgb(255,0,0);stroke-width:2',
-      class: 'edge-line',
-      'marker-end': 'url(#arrow)'
-    });
-  });
-
-var nodes = d3.select('#mysvg')
-  .selectAll('g')
-  .data(graph.nodes)
-  .enter()
-  .append('g')
-  .attr({
-    id: function(d) {
-      return d.id;
-    },
-    class: 'node-group'
-  });
-
-nodes.each(function(d) {
-  var xmin = d3.min(d.data, function(d) {
-    return d.q;
-  });
-  var xmax = d3.max(d.data, function(d) {
-    return d.q;
-  });
-  var ymin = d3.min(d.data, function(d) {
-    return d.p;
-  });
-  var ymax = d3.max(d.data, function(d) {
-    return d.p;
-  });
-
-  var x = d3.scale.linear()
-    .domain([xmin, xmax])
-    .range([0, gwidth]);
-
-  var y = d3.scale.linear()
-    .domain([ymin, ymax])
-    .range([gheight, 0]);
-
-  var xAxis = d3.svg.axis()
-    .scale(x)
-    .ticks(4)
-    .orient("bottom");
-
-  var yAxis = d3.svg.axis()
-    .scale(y)
-    .ticks(4)
-    .orient("left");
-
-  var line = d3.svg.line()
-    .x(function(d) {
-      return x(d.q);
-    })
-    .y(function(d) {
-      return y(d.p);
-    });
-
-  d3.select(this)
-    .append('rect')
-    .attr({
-      x: 0,
-      y: 0,
-      width: gwidth,
-      height: gheight,
-      fill: '#eceff1',
-      class: 'node-rect'
-    })
-    .on('mousedown', function(d) {
-      d3.selectAll('g.node-group').sort(function(a, b) {
-        if (a.id !== d.id) {
-          return -1;
-        } else {
-          return 1;
-        }
-      });
-    });
-  d3.select(this)
-    .append('text')
-    .attr({
-      x: gwidth / 2,
-      y: -5,
-      fill: 'black',
-      class: 'node-name',
-      'font-family': 'monospace',
-      'font-size': 12
-    })
-    .text(function(d) {
-      return d.id;
-    })
-    .style('text-anchor', 'middle');
-  d3.select(this)
-    .append("path")
-    .datum(d.data)
-    .attr({
-      class: 'node-line',
-      d: line
-    });
-  d3.select(this)
-    .append("g")
-    .attr({
-      class: 'node-x-axis axis',
-      transform: 'translate(0,' + gheight + ')'
-    })
-    .call(xAxis);
-  d3.select(this)
-    .append("g")
-    .attr({
-      class: 'node-y-axis axis'
-    })
-    .call(yAxis);
-  var translate = 'translate(' + d.x + ',' + d.y + ')';
-  d3.select(this)
-    .attr({
-      transform: translate,
-      'data-id': d.id
-    });
-});
-
-var drag = d3.behavior.drag()
-  .origin(function(d) {
-    return d;
-  })
-  .on('dragstart', function(e) {
-    d3.event.sourceEvent.stopPropagation();
-  })
-  .on('drag', function(e) {
-    e.x = d3.event.x;
-    e.y = d3.event.y;
-
-    var id = 'g#' + e.id;
-    var translate = 'translate(' + e.x + ',' + e.y + ')';
-    d3.select(id).attr({
-      transform: translate
-    });
-
-    var arcs = 'line[data-parent=' + e.id + ']';
-    d3.selectAll(arcs)
-      .each(function(d) {
-        var points = graph.edge(d.parent, d.child);
-        d3.select(this).attr({
-          x1: points.x1,
-          y1: points.y1,
-          x2: points.x2,
-          y2: points.y2
-        });
-      });
-
-    arcs = 'line[data-child=' + e.id + ']';
-    d3.selectAll(arcs)
-      .each(function(d) {
-        var points = graph.edge(d.parent, d.child);
-        d3.select(this).attr({
-          x1: points.x1,
-          y1: points.y1,
-          x2: points.x2,
-          y2: points.y2
-        });
-      });
-  });
-
-nodes.call(drag);
-
-function getNode(mean, sigma, x, y, id) {
-  var data = [];
-  var lower = mean - (3.5 * sigma);
-  var upper = mean + (3.5 * sigma);
-  var increment = (upper - lower) / 100.0;
-
-  for (var i = lower; i <= upper; i += increment) {
-    q = i;
-    p = gaussian(q, mean, sigma);
-    el = {
-      "q": q,
-      "p": p
-    }
-    data.push(el)
-  };
-
-  data.sort(function(x, y) {
-    return x.q - y.q;
-  });
-  return {
-    data: data,
-    x: x,
-    y: y,
-    id: 'n' + id,
-    parents: []
-  };
-}
-
-function getGraph() {
-  return {
-    nodes: [],
-    edges: [],
-    node: function(id) {
-      if (!this.map) {
-        this.nodeMap = {};
-        for (var i = 0; i < this.nodes.length; i++) {
-          var node = this.nodes[i];
-          this.nodeMap[node.id] = node;
-        }
-      }
-      return this.nodeMap[id];
-    },
-    edge: function(id1, id2) {
-      var n1 = this.node(id1),
-        n2 = this.node(id2);
-      var path = getPath(n1, n2);
-      return path;
-    },
-    addEdge: function(parent, child) {
-      var edge = {
-        parent: parent,
-        child: child
-      };
-      this.edges.push(edge);
-      return edge;
-    },
-    addNode: function(mean, sigma, x, y, id) {
-      var data = [];
-      var lower = mean - (3.5 * sigma);
-      var upper = mean + (3.5 * sigma);
-      var increment = (upper - lower) / 100.0;
-
-      for (var i = lower; i <= upper; i += increment) {
-        q = i;
-        p = gaussian(q, mean, sigma)
-        el = {
-          "q": q,
-          "p": p
-        }
-        data.push(el)
-      };
-
-      data.sort(function(x, y) {
-        return x.q - y.q;
-      });
-      var node = {
-        data: data,
-        x: x,
-        y: y,
-        id: 'n' + id,
-        width: gwidth,
-        height: gheight
-      };
-      this.nodes.push(node);
-      return node;
-    }
-  };
-}
-
-function gaussian(x, mean, sigma) {
-  var gaussianConstant = 1 / Math.sqrt(2 * Math.PI);
-
-  x = (x - mean) / sigma;
-  return gaussianConstant * Math.exp(-.5 * x * x) / sigma;
-};
-
-function getPath(n1, n2) {
-  var c1 = center(n1),
-    c2 = center(n2);
-  var x1 = c1.x,
-    y1 = c1.y,
-    x2 = c2.x,
-    y2 = c2.y,
-    theta = Math.atan2(y2 - y1, x2 - x1);
-  var p1 = getPoint(theta, n1),
-    p2 = getPoint(theta + Math.PI, n2);
-  if (p1.error || p2.error) {
-    return {
-      x1: 0,
-      y1: 0,
-      x2: 0,
-      y2: 0,
-      error: true
-    };
-  }
-  return {
-    x1: p1.x,
-    y1: p1.y,
-    x2: p2.x,
-    y2: p2.y
-  };
-}
-
-function center(node) {
-  var x = node.width / 2.0 + node.x,
-    y = node.height / 2.0 + node.y;
-  return {
-    x: x,
-    y: y
-  };
-}
-
-function getPoint(theta, n) {
-  var c = center(n);
-  var cx = c.x;
-  var cy = c.y;
-  var w = n.width / 2.0;
-  var h = n.height / 2.0;
-  var d = distance(cx, cy, cx + w, cy + h);
-  var x = cx + d * Math.cos(theta);
-  var y = cy + d * Math.sin(theta);
-  var ocode = outcode(n, x, y);
-  var p = {};
-  switch (ocode) {
-    case OUT_TOP:
-      p.x = cx - h * ((x - cx) / (y - cy));
-      p.y = cy - h;
-      break;
-    case OUT_LEFT:
-      p.x = cx - w;
-      p.y = cy - w * ((y - cy) / (x - cx));
-      break;
-    case OUT_BOTTOM:
-      p.x = cx + h * ((x - cx) / (y - cy));
-      p.y = cy + h;
-      break;
-    case OUT_RIGHT:
-      p.x = cx + w;
-      p.y = cy + w * ((y - cy) / (x - cx));
-      break;
-    default:
-      console.error('non-cardinal outcode ' + ocode);
-      p.error = true;
-  }
-  return p;
-}
-
-function distance(x1, y1, x2, y2) {
-  var x = x1 - x2;
-  var y = y1 - y2;
-  var d = Math.sqrt(x * x + y * y);
-  return d;
-}
-
-function outcode(n, x, y) {
-  var out = 0;
-  if (n.width <= 0) {
-    out |= OUT_LEFT | OUT_RIGHT;
-  } else if (x < n.x) {
-    out |= OUT_LEFT;
-  } else if (x > n.x + n.width) {
-    out |= OUT_RIGHT;
-  }
-
-  if (n.height <= 0) {
-    out |= OUT_TOP | OUT_BOTTOM;
-  } else if (y < n.y) {
-    out |= OUT_TOP;
-  } else if (y > n.y + n.height) {
-    out |= OUT_BOTTOM;
-  }
-  return out;
-}
-</script>
 
 </html>
