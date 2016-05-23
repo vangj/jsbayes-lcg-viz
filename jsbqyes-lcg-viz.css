@@ -1,21 +1,7 @@
-body {
-  font: 10px sans-serif;
-}
 .axis line {
   fill: none;
   stroke: #000;
   shape-rendering: crispEdges;
-}  
-.node-line {
-  fill: none;
-  stroke: steelblue;
-  stroke-width: 1.5px;
-}
-.axis {
-  font: 10px sans-serif;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  user-select: none;
 }
 .axis .domain {
   fill: none;
@@ -30,3 +16,10 @@ body {
   stroke-width: 8px;
   stroke-linecap: round;
 }
+
+svg g.node-group { cursor: move; }
+svg g rect.node-rect { fill: #eceff1 }
+svg g text.node-name { cursor: crosshair; }
+svg g path.node-line { fill: none; stroke: steelblue; stroke-width: 1.5px; }
+svg g g.node-x-axis { cursor: crosshair; font: 10px sans-serif; -webkit-user-select: none; -moz-user-select: none; user-select: none; }
+svg g g.node-y-axis { font: 10px sans-serif; -webkit-user-select: none; -moz-user-select: none; user-select: none; }
