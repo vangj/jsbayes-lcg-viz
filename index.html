@@ -30,6 +30,7 @@
       var n0 = graph.defineNode('n0', 0);
 
       var T = 15000;
+      graph.saveSamples = true;
       graph.sample(T);
       
       var g = jsbayeslcgviz.fromGraph(graph);
@@ -41,10 +42,18 @@
         var graph = getGraph();
         jsbayeslcgviz.draw({
           id: '#bbn',
-          width: 1000,
-          height: 1000,
+          width: 800,
+          height: 800,
           graph: graph,
           samples: 10000
+        });
+        
+        $('#btnDownloadJson').click(function() {
+          jsbayeslcgviz.downloadSamples(graph, true);
+        });
+
+        $('#btnDownloadCsv').click(function() {
+          jsbayeslcgviz.downloadSamples(graph, false, { rowDelimiter: '\n', fieldDelimiter: ',' });
         });
       })(window);
     })
@@ -53,6 +62,10 @@
 
 <body>
   <svg id="bbn"></svg>
+  <div>
+    <button id="btnDownloadJson">download samples as json</button>
+    <button id="btnDownloadCsv">download samples as csv</button>
+  </div>
 </body>
 
 </html>
