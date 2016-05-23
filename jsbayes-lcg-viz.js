@@ -279,7 +279,7 @@
   function curveId(node) {
     return 'curve-' + node.uid;
   }
-  function rescale(node) {
+  function rescale(graph, SAMPLES, node) {
     var xId = '#' + xAxisId(node),
         yId = '#' + yAxisId(node),
         cId = '#' + curveId(node);
@@ -302,6 +302,23 @@
     d3.select(xId).transition().duration(1000).ease('circle').call(xAxis);
     d3.select(yId).transition().duration(1000).ease('bounce').call(yAxis);
     d3.select(cId).datum(node.data).attr({ d: line });
+    
+    d3.select(xId).on('click', null);
+    d3.select(xId).on('click', function() {
+      var result = x.invert(d3.mouse(this)[0]);
+      node.observed = true;
+      var g = graph.graph;
+      g.node(node.id).observe(result);
+      g.sample(SAMPLES);
+
+      for(var i=0; i < g.nodes.length; i++) {
+        var nOut = g.nodes[i];
+        var nIn = graph.nodeById(nOut.id);
+        nIn.mean = nOut.avg;
+        initNodeData(nIn);
+        rescale(graph, SAMPLES, nIn);
+      }
+    });
   }
   function drawNodesRect(nodes) {
     nodes.each(function(d) {
@@ -355,7 +372,7 @@
             var nIn = graph.nodeById(nOut.id);
             nIn.mean = nOut.avg;
             initNodeData(nIn);
-            rescale(nIn);
+            rescale(graph, SAMPLES, nIn);
           }
         });
     });
@@ -425,33 +442,6 @@
           class: 'node-x-axis axis',
           'data-node': d.uid,
           transform: 'translate(0,' + gheight + ')'
-        })
-        .on('click', function(n) {
-          var min = n.x;
-          var max = n.x + n.width;
-          var range = max - min;
-          var pct = (d3.event.x - min) / range;
-          var xmin = n.data[0].q;
-          var xmax = n.data[n.data.length-1].q;
-          var xrange = xmax - xmin;
-          var result = pct * xrange + xmin;
-//          console.log(n.uid + ' result = ' + result);
-          
-          n.observed = true;
-          var g = graph.graph;
-          var node = g.node(n.id);
-          node.observe(result);
-          g.sample(SAMPLES);
-          
-          for(var i=0; i < g.nodes.length; i++) {
-            var nOut = g.nodes[i];
-            var nIn = graph.nodeById(nOut.id);
-            nIn.mean = nOut.avg;
-            initNodeData(nIn);
-            rescale(nIn);
-//            console.log(nIn.data);
-          }
-//          console.log(graph);
         });
     });
   }
@@ -491,7 +481,7 @@
     drawNodesYAxis(nodes);
     
     nodes.each(function(d) {
-      rescale(d);
+      rescale(graph, SAMPLES, d);
     });
     
     enableNodesDrag(graph, nodes);
