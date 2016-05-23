@@ -1,6 +1,6 @@
 {
   "name": "jsbayes-lcg-viz",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Simple Linear Conditional Gaussian (LCG) Bayesian Belief Network (BBN) visualization and interaction library in JavaScript.",
   "main": "jsbayes-lcg-viz.js",
   "scripts": {
